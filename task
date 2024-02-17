@@ -1,0 +1,10 @@
+#!/usr/local/bin/zsh
+
+SCRIPT_DIR=$(dirname $0)
+
+if [[ "$(date +%w)" == "0" ]]; then
+    echo "Sunday coming!"
+    $SCRIPT_DIR/scan
+else
+    $SCRIPT_DIR/scan --no-archive
+fi

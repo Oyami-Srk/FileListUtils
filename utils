@@ -1,0 +1,14 @@
+#!/usr/local/bin/zsh
+
+function create_volume_map() {
+    # Shared folder volume map
+    declare -gA sf_volume_map
+    while IFS= read -r line; do
+    	key=${line##*/}
+    	sf_volume_map["$key"]="$line"
+    done < <(find / -maxdepth 2 -type d -wholename "/volume[0-9]*/[^@]*" 2>/dev/null)
+    
+    # declare -p sf_volume_map
+    # echo ${sf_volume_map["Cloud Station"]}
+}
+

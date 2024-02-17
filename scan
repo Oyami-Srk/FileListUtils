@@ -1,0 +1,87 @@
+#!/usr/local/bin/zsh
+
+SCRIPT_DIR=$(dirname $0)
+source $SCRIPT_DIR/utils
+
+create_volume_map
+
+WORKDIR=${sf_volume_map["FileLists"]}
+mkdir -p $WORKDIR/archives
+mkdir -p $WORKDIR/currents
+
+# Configuration
+# Shared folder list
+SHARED_FOLDERS=(
+	"Files"
+	"Ego"
+	"BT"
+	"CruelWorld"
+)
+
+# Parametes handling
+
+SKIP_SCAN=0
+SKIP_ARCHIVE=0
+DISPLAY_HELP=0
+
+HELP_TEXT="Scan File List by Shiroko<hhx.xxm@gmail.com>
+	--no-scan	Skip scanning file lists.
+	--no-archive Skip archiving file lists.
+	-h|--help	Display this help and quit.
+"
+
+while (( $# )) ; do
+	case "$1" in
+	--no-scan)
+		SKIP_SCAN=1
+		;;
+	--no-archive)
+		SKIP_ARCHIVE=1
+		;;
+	--help | -h)
+		DISPLAY_HELP=1
+		;;
+	*)
+		DISPLAY_HELP=1
+		;;
+	esac
+	shift
+done
+
+function scan() {
+    echo "Shared folders to be scanned: ${SHARED_FOLDERS}"
+    
+    for sf in $SHARED_FOLDERS; do
+    	sf_path="${sf_volume_map["$sf"]}"
+    	echo -n "Scanning $sf @ $sf_path..."
+    	start=$(date +%s)
+    	fd --color never -HI . "$sf_path" | sort > "$WORKDIR/currents/$sf.txt"
+    	end=$(date +%s)
+    	dur=$(( end - start ))
+    	echo " Done! Take ${dur} seconds."
+    done
+    echo "Scan completed!"
+}
+
+function archive() {
+    echo -n "Archiving File lists..."
+    start=$(date +%s)
+    ZSTD_CLEVEL=10 ZSTD_NBTHREADS=0 tar -I zstd -cf $WORKDIR/archives/$(date +%Y-%m-%d).tar.zst -C$WORKDIR/currents/ $(find $WORKDIR/currents -type f -printf "%f\n") 2>/dev/null
+    end=$(date +%s)
+    dur=$(( end - start ))
+    echo " Done! Take ${dur} seconds."
+    echo "Archive completed!"
+}
+
+
+if (( $DISPLAY_HELP )); then
+	echo -n $HELP_TEXT
+	exit
+fi
+
+if ! (( $SKIP_SCAN )); then
+    scan
+fi
+if ! (( $SKIP_ARCHIVE )); then
+    archive
+fi

@@ -1,0 +1,77 @@
+#!/usr/local/bin/zsh
+
+SCRIPT_DIR=$(dirname $0)
+source $SCRIPT_DIR/utils
+
+create_volume_map
+
+WORKDIR=${sf_volume_map["FileLists"]}
+
+TARGET_SHARED_FOLDER=""
+FULL_MATCH=0
+DISPLAY_HELP=0
+
+HELP_TEXT="Search Scanned File List by Shiroko<hhx.xxm@gmail.com>
+	--target | -t <Target shared folder>     Specify which shared folder to search
+    --full-match | -f    Full-match search
+"
+
+if ! (( $# )); then
+    echo "Must specify filename to search."
+    exit -1
+fi
+
+while (( $# )) ; do
+	case "$1" in
+	--target | -t)
+        shift
+        if ! (( $# )); then
+            echo "Must specify target shared folder."
+            exit -1
+        fi
+        TARGET_SHARED_FOLDER="$1"
+		;;
+    --full-match | -f)
+        FULL_MATCH=1
+        ;;
+	--help | -h)
+		DISPLAY_HELP=1
+		;;
+	*)
+        break
+		;;
+	esac
+	shift
+done
+
+SEARCH_TEXT="$@"
+
+if (( $FULL_MATCH )); then
+    SEARCH_REGEX='/'$SEARCH_TEXT'$'
+else
+    SEARCH_REGEX="$SEARCH_TEXT"'[^/]*$'
+fi
+
+if (( $DISPLAY_HELP )); then
+	echo -n $HELP_TEXT
+	exit
+fi
+
+if [[ ! -d $WORKDIR/currents ]]; then
+    echo "No Scanned File Lists Found."
+    exit -1
+fi
+
+echo -n "Searching for: \033[31m$@\033[0m "
+
+if [[ -z "$TARGET_SHARED_FOLDER" ]]; then
+    echo "in all folder"
+    for sf in $(find "$WORKDIR/currents" -maxdepth 1 -type f); do
+        sf_name=${${sf##*/}%.txt}
+        echo "Searching inside $sf_name ..."
+        grep --color -P "$SEARCH_REGEX" "$WORKDIR/currents/$sf_name.txt"
+    done
+else
+    echo "in $TARGET_SHARED_FOLDER"
+    grep --color -P "$SEARCH_REGEX" "$WORKDIR/currents/$TARGET_SHARED_FOLDER.txt"
+fi
